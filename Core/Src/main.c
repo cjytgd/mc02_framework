@@ -51,7 +51,7 @@
 
 /* USER CODE BEGIN PV */
 char buf[100];
-const uint16_t base_color[3] = {200,0,0};
+const uint16_t base_color[3] = {100,80,40};
 const float color_light[5] = {0.5f,1.0f,1.5f,2.0f,2.5f};
 int color_index = 0;
 
@@ -124,6 +124,7 @@ int main(void)
         while (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_15) == GPIO_PIN_RESET);
         color_index++;
         if (color_index >= 5) {color_index = 0;}
+        WS2812_Ctrl((float)base_color[0] * color_light[color_index],(float)base_color[1] * color_light[color_index],(float)base_color[2] * color_light[color_index]);
         buzzer_start(1000 + color_index * 300);
         sprintf(buf,"color_light:%d\n",color_index);
         HAL_UART_Transmit(&huart1,buf,strlen(buf),100);
