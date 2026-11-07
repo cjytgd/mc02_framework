@@ -29,6 +29,8 @@
 #include"string.h"
 #include"../../User/Inc/bsp_buzzer.h"
 #include"../../User/Inc/bsp_ws2812.h"
+#include"../../User/Inc/bsp_led.h"
+
 #include"stdio.h"
 /* USER CODE END Includes */
 
@@ -50,25 +52,8 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-char buf[100];
-const  uint8_t color_set[6][3] = {
-  {0,0,0},
-  {250,0,0},
-  {0,250,0},
-  {0,0,250},
-  {250,0,250},
-  {0,250,250},
-};
-uint8_t color_index = 0;
-volatile uint8_t is_breathing = 0;
-volatile uint8_t last_breathing = 0;
-uint8_t red = 0;
-uint8_t green = 0;
-uint8_t blue = 0;
-
-
-
-
+volatile uint8_t press_time = 0;
+volatile uint8_t flag = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -121,48 +106,38 @@ int main(void)
   MX_USART1_UART_Init();
   MX_UART7_Init();
   /* USER CODE BEGIN 2 */
+   buzzer_init();
+  bsp_led_init();
 
-  HAL_UART_Transmit_DMA(&huart7,(uint8_t*)buf, strlen(buf));
-  buzzer_stop();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
-  uint32_t buzzer_start_stop = 0;
+ //用按键模拟工作状态，按一下表示未工作，按两下表示正常，按三下表示遇到突发情况
+  //bsp_led_set(normal,0,250,0);
   while (1)
-  {//WS2812_Ctrl(250,0,0);
-    uint32_t now = HAL_GetTick();
-   if (is_breathing != last_breathing) {
-     last_breathing = is_breathing;
-     if (is_breathing == 1) {
-       color_index++;
-       //sprintf(buf,"color_set:%d\r\n",color_index);
-       //HAL_UART_Transmit_DMA(&huart7,buf,strlen(buf));
-       if (color_index >=6){color_index = 0;}
+   {
+    //bsp_led_task(2000);
+    if (press_time == 1) {bsp_led_set(init,0,0,0);}
+     if (press_time == 2) {bsp_led_set(normal,250,0,0);}
+     if (press_time == 3) {bsp_led_set(error,250,0,0);}
+     uint32_t now = HAL_GetTick();
+     bsp_led_task(2000);
+     if (flag == 1) {
+       flag = 0;
+       buzzer_start(1000,1000);
      }
-     else {
-       buzzer_stop();
-       WS2812_Ctrl(0,0,0);
-     }
-   }
-   if (is_breathing == 1) {
-     //实现以2s为周期的呼吸灯效果
-    float recycle = (now % 2000) * ( 2 * 3.14f) / 2000.0f;
-     float duty =  (sin(recycle) + 1.0f) / 2.0f;
-     uint8_t red = color_set[color_index][0] * duty;
-     uint8_t green = color_set[color_index][1] * duty;
-     uint8_t blue = color_set[color_index][2] * duty;
-     WS2812_Ctrl(red,green,blue);
-     //让蜂鸣器以不同的音调响
-     float m =1000 + 1000*duty;
-     buzzer_start(m);
+    buzzer_task();
 
 
 
 
 
-  }
+
+
+
+
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
@@ -237,7 +212,10 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
     uint32_t current_time = HAL_GetTick();
     if (current_time - time > 50) {
       time = current_time;
-      is_breathing = !is_breathing;//按奇数次亮灯，按偶数次熄灯
+      press_time++;
+      flag =1;
+      if (press_time >3){press_time = 1;}
+
     }
   }
 }

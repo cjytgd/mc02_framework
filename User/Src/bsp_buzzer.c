@@ -6,16 +6,23 @@
 #include"tim.h"
 #define TIM htim12
 #define TIM_CHANNEL TIM_CHANNEL_2
+uint32_t stop = 0;
 void buzzer_init() {
     buzzer_stop();
 }
 void buzzer_stop() {
     __HAL_TIM_SET_COMPARE(&TIM, TIM_CHANNEL,10000);
 }
-void buzzer_start(uint32_t frg) {
+void buzzer_start(uint32_t frg,uint8_t lasting) {
     uint32_t arr = 1000000 / frg;
     __HAL_TIM_SET_AUTORELOAD(&TIM,arr);
     __HAL_TIM_SET_COMPARE(&TIM,TIM_CHANNEL,arr/2);
     HAL_TIM_PWM_Start(&TIM, TIM_CHANNEL);
-
+     stop = HAL_GetTick() + lasting;
+}
+void buzzer_task() {
+    if (HAL_GetTick() > stop) {
+        buzzer_stop();
+        stop = 0;
+    }
 }
