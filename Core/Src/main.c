@@ -18,18 +18,18 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "dma.h"
 #include "spi.h"
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
-#include "spi.h"
-#include"stdio.h"
-#include"ws2812.h"
-#include"buzzer.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include"string.h"
+#include"../../User/Inc/bsp_buzzer.h"
+#include"../../User/Inc/bsp_ws2812.h"
+#include"stdio.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -51,9 +51,22 @@
 
 /* USER CODE BEGIN PV */
 char buf[100];
-const uint16_t base_color[3] = {100,80,40};
-const float color_light[5] = {0.5f,1.0f,1.5f,2.0f,2.5f};
-int color_index = 0;
+const  uint8_t color_set[6][3] = {
+  {0,0,0},
+  {250,0,0},
+  {0,250,0},
+  {0,0,250},
+  {250,0,250},
+  {0,250,250},
+};
+uint8_t color_index = 0;
+volatile uint8_t is_breathing = 0;
+volatile uint8_t last_breathing = 0;
+uint8_t red = 0;
+uint8_t green = 0;
+uint8_t blue = 0;
+
+
 
 
 /* USER CODE END PV */
@@ -90,7 +103,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
+  buzzer_init();
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -102,40 +115,58 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_SPI6_Init();
   MX_TIM12_Init();
   MX_USART1_UART_Init();
+  MX_UART7_Init();
   /* USER CODE BEGIN 2 */
-  HAL_UART_Transmit(&huart1,(uint8_t *)buf,strlen(buf),100);
-  HAL_TIM_PWM_Start(&htim12, TIM_CHANNEL_2);
-  WS2812_Ctrl((float)base_color[0] * color_light[color_index],(float)base_color[1] * color_light[color_index],(float)base_color[2] * color_light[color_index]);
+
+  HAL_UART_Transmit_DMA(&huart7,(uint8_t*)buf, strlen(buf));
+  buzzer_stop();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+
+  uint32_t buzzer_start_stop = 0;
   while (1)
-  {
-    /* USER CODE END WHILE */
+  {//WS2812_Ctrl(250,0,0);
+    uint32_t now = HAL_GetTick();
+   if (is_breathing != last_breathing) {
+     last_breathing = is_breathing;
+     if (is_breathing == 1) {
+       color_index++;
+       //sprintf(buf,"color_set:%d\r\n",color_index);
+       //HAL_UART_Transmit_DMA(&huart7,buf,strlen(buf));
+       if (color_index >=6){color_index = 0;}
+     }
+     else {
+       buzzer_stop();
+       WS2812_Ctrl(0,0,0);
+     }
+   }
+   if (is_breathing == 1) {
+     //实现以2s为周期的呼吸灯效果
+    float recycle = (now % 2000) * ( 2 * 3.14f) / 2000.0f;
+     float duty =  (sin(recycle) + 1.0f) / 2.0f;
+     uint8_t red = color_set[color_index][0] * duty;
+     uint8_t green = color_set[color_index][1] * duty;
+     uint8_t blue = color_set[color_index][2] * duty;
+     WS2812_Ctrl(red,green,blue);
+     //让蜂鸣器以不同的音调响
+     float m =1000 + 1000*duty;
+     buzzer_start(m);
 
-    /* USER CODE BEGIN 3 */
-    if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_15) == GPIO_PIN_RESET) {
-      HAL_Delay(20);
-      if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_15) == GPIO_PIN_RESET) {
-        while (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_15) == GPIO_PIN_RESET);
-        color_index++;
-        if (color_index >= 5) {color_index = 0;}
-        WS2812_Ctrl((float)base_color[0] * color_light[color_index],(float)base_color[1] * color_light[color_index],(float)base_color[2] * color_light[color_index]);
-        buzzer_start(1000 + color_index * 300);
-        sprintf(buf,"color_light:%d\n",color_index);
-        HAL_UART_Transmit(&huart1,buf,strlen(buf),100);
-        HAL_Delay(1000);
-        buzzer_stop();
 
 
 
-      }
-      HAL_Delay(50);
-    }
+
+  }
+  /* USER CODE END WHILE */
+
+  /* USER CODE BEGIN 3 */
+
   }
   /* USER CODE END 3 */
 }
@@ -155,7 +186,7 @@ void SystemClock_Config(void)
 
   /** Configure the main internal regulator output voltage
   */
-  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE3);
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE2);
 
   while(!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {}
 
@@ -168,13 +199,13 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
   RCC_OscInitStruct.PLL.PLLM = 4;
-  RCC_OscInitStruct.PLL.PLLN = 13;
-  RCC_OscInitStruct.PLL.PLLP = 3;
+  RCC_OscInitStruct.PLL.PLLN = 32;
+  RCC_OscInitStruct.PLL.PLLP = 5;
   RCC_OscInitStruct.PLL.PLLQ = 2;
   RCC_OscInitStruct.PLL.PLLR = 2;
   RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_3;
   RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;
-  RCC_OscInitStruct.PLL.PLLFRACN = 4096;
+  RCC_OscInitStruct.PLL.PLLFRACN = 0;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -200,7 +231,16 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+  if (GPIO_Pin == GPIO_PIN_15) {
+    static uint32_t time = 0;
+    uint32_t current_time = HAL_GetTick();
+    if (current_time - time > 50) {
+      time = current_time;
+      is_breathing = !is_breathing;//按奇数次亮灯，按偶数次熄灯
+    }
+  }
+}
 /* USER CODE END 4 */
 
  /* MPU Configuration */
