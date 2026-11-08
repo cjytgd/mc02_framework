@@ -30,6 +30,7 @@
 #include"../../User/Inc/bsp_buzzer.h"
 #include"../../User/Inc/bsp_ws2812.h"
 #include"../../User/Inc/bsp_led.h"
+#include"../../User/Inc/bsp_uart.h"
 
 #include"stdio.h"
 /* USER CODE END Includes */
@@ -53,7 +54,10 @@
 
 /* USER CODE BEGIN PV */
 volatile uint8_t press_time = 0;
+volatile uint8_t last_press_time = 0;
 volatile uint8_t flag = 0;
+char buf[128];
+extern char re_buf[128];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -106,29 +110,42 @@ int main(void)
   MX_USART1_UART_Init();
   MX_UART7_Init();
   /* USER CODE BEGIN 2 */
-   buzzer_init();
+  buzzer_init();
   bsp_led_init();
+  uart_init(&huart7);
+  //uart_init(&huart7);
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
- //用按键模拟工作状态，按一下表示未工作，按两下表示正常，按三下表示遇到突发情况
+  //用按键模拟工作状态，按一下表示未工作，按两下表示正常，按三下表示遇到突发情况
   //bsp_led_set(normal,0,250,0);
-  while (1)
-   {
-    //bsp_led_task(2000);
-    if (press_time == 1) {bsp_led_set(init,0,0,0);}
-     if (press_time == 2) {bsp_led_set(normal,250,0,0);}
-     if (press_time == 3) {bsp_led_set(error,250,0,0);}
-     uint32_t now = HAL_GetTick();
-     bsp_led_task(2000);
-     if (flag == 1) {
-       flag = 0;
+  static uint8_t last_press = 10;
+  //HAL_UART_Receive_IT(&huart7, (uint8_t*)re_buf,1);
+  while (1) {
+    if (press_time != last_press) {
+      last_press = press_time;
+      if (press_time == 1) {bsp_led_set(init,0,0,0);}
+      else if (press_time == 2) {
+        bsp_led_set(normal,250,0,0);
+        uart_start("working normally\n");
+      }
+      else if (press_time == 3) {
+        bsp_led_set(error,250,0,0);
+        uart_start("working error\n");
+      }
+    }
+      uint32_t now = HAL_GetTick();
+      bsp_led_task(2000);
+      if (flag == 1) {
+        flag = 0;
        buzzer_start(1000,1000);
-     }
-    buzzer_task();
+      }
+     buzzer_task();
+
+    //
 
 
 
@@ -137,12 +154,13 @@ int main(void)
 
 
 
+    /* USER CODE END WHILE */
 
-  /* USER CODE END WHILE */
-
-  /* USER CODE BEGIN 3 */
+    /* USER CODE BEGIN 3 */
+      //
 
   }
+
   /* USER CODE END 3 */
 }
 
@@ -161,24 +179,25 @@ void SystemClock_Config(void)
 
   /** Configure the main internal regulator output voltage
   */
-  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE2);
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE0);
 
   while(!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {}
 
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.HSIState = RCC_HSI_DIV1;
   RCC_OscInitStruct.HSICalibrationValue = 64;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
-  RCC_OscInitStruct.PLL.PLLM = 4;
-  RCC_OscInitStruct.PLL.PLLN = 32;
-  RCC_OscInitStruct.PLL.PLLP = 5;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLM = 5;
+  RCC_OscInitStruct.PLL.PLLN = 96;
+  RCC_OscInitStruct.PLL.PLLP = 1;
   RCC_OscInitStruct.PLL.PLLQ = 2;
   RCC_OscInitStruct.PLL.PLLR = 2;
-  RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_3;
+  RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_2;
   RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;
   RCC_OscInitStruct.PLL.PLLFRACN = 0;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
@@ -193,32 +212,32 @@ void SystemClock_Config(void)
                               |RCC_CLOCKTYPE_D3PCLK1|RCC_CLOCKTYPE_D1PCLK1;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.SYSCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_HCLK_DIV1;
-  RCC_ClkInitStruct.APB3CLKDivider = RCC_APB3_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_APB1_DIV1;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_APB2_DIV1;
-  RCC_ClkInitStruct.APB4CLKDivider = RCC_APB4_DIV1;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB3CLKDivider = RCC_APB3_DIV2;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_APB1_DIV2;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_APB2_DIV2;
+  RCC_ClkInitStruct.APB4CLKDivider = RCC_APB4_DIV2;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_3) != HAL_OK)
   {
     Error_Handler();
   }
 }
 
 /* USER CODE BEGIN 4 */
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
-  if (GPIO_Pin == GPIO_PIN_15) {
-    static uint32_t time = 0;
-    uint32_t current_time = HAL_GetTick();
-    if (current_time - time > 50) {
-      time = current_time;
-      press_time++;
-      flag =1;
-      if (press_time >3){press_time = 1;}
+  void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+    if (GPIO_Pin == GPIO_PIN_15) {
+      static uint32_t time = 0;
+      uint32_t current_time = HAL_GetTick();
+      if (current_time - time > 50) {
+        time = current_time;
+        press_time++;
+        flag =1;
+        if (press_time >3){press_time = 1;}
 
+      }
     }
   }
-}
 /* USER CODE END 4 */
 
  /* MPU Configuration */
@@ -257,11 +276,11 @@ void MPU_Config(void)
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
-  __disable_irq();
-  while (1)
-  {
-  }
+    /* User can add his own implementation to report the HAL error return state */
+    __disable_irq();
+    while (1)
+    {
+    }
   /* USER CODE END Error_Handler_Debug */
 }
 #ifdef USE_FULL_ASSERT
@@ -275,8 +294,8 @@ void Error_Handler(void)
 void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
-  /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+    /* User can add his own implementation to report the file name and line number,
+       ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
