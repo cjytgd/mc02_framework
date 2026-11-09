@@ -49,5 +49,11 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
         busy = 0;//保证发完一包数据才能进行下一次发送，防止数据互踩
     }
 }
+void HAL_uART_ErrorCallback(UART_HandleTypeDef *huart) {
+    if (huart->Instance == UART) {
+        __HAL_UART_CLEAR_OREFLAG(huart);//清空ore
+        HAL_UARTEx_ReceiveToIdle_DMA(huart,(uint8_t*)re_buf,sizeof(re_buf));//重新开始接收
+    }
+}
 
     

@@ -139,9 +139,9 @@ int main(void)
       bsp_led_task(2000);
       if (flag == 1) {
         flag = 0;
-       buzzer_start(1000,1000);
+       //buzzer_start(1000,1000);
       }
-     buzzer_task();
+     //buzzer_task();
 
 
 
@@ -155,7 +155,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-      
+
 
   }
 
