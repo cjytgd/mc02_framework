@@ -113,7 +113,7 @@ int main(void)
   buzzer_init();
   bsp_led_init();
   uart_init(&huart7);
-  //uart_init(&huart7);
+
 
   /* USER CODE END 2 */
 
@@ -121,9 +121,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
 
   //用按键模拟工作状态，按一下表示未工作，按两下表示正常，按三下表示遇到突发情况
-  //bsp_led_set(normal,0,250,0);
   static uint8_t last_press = 10;
-  //HAL_UART_Receive_IT(&huart7, (uint8_t*)re_buf,1);
   while (1) {
     if (press_time != last_press) {
       last_press = press_time;
@@ -145,7 +143,7 @@ int main(void)
       }
      buzzer_task();
 
-    //
+
 
 
 
@@ -157,7 +155,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-      //
+      
 
   }
 
