@@ -40,6 +40,8 @@ add_executable(${CMAKE_PROJECT_NAME}
         User/Src/bsp_uart.c
         User/Inc/bsp_led.h
         User/Src/bsp_led.c
+        User/Inc/bsp_can.h
+        User/Src/bsp_can.c
 
 )
 

@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "dma.h"
+#include "fdcan.h"
 #include "spi.h"
 #include "tim.h"
 #include "usart.h"
@@ -31,6 +32,7 @@
 #include"../../User/Inc/bsp_ws2812.h"
 #include"../../User/Inc/bsp_led.h"
 #include"../../User/Inc/bsp_uart.h"
+#include"../../User/Inc/bsp_can.h"
 
 #include"stdio.h"
 /* USER CODE END Includes */
@@ -109,10 +111,12 @@ int main(void)
   MX_TIM12_Init();
   MX_USART1_UART_Init();
   MX_UART7_Init();
+  MX_FDCAN1_Init();
   /* USER CODE BEGIN 2 */
   buzzer_init();
   bsp_led_init();
   uart_init(&huart7);
+  bsp_can_init();
 
 
   /* USER CODE END 2 */
@@ -122,26 +126,32 @@ int main(void)
 
   //用按键模拟工作状态，按一下表示未工作，按两下表示正常，按三下表示遇到突发情况
   static uint8_t last_press = 10;
+  uint8_t txcan_buf[8] = {1,2,3,4,5,6,7,8};
   while (1) {
-    if (press_time != last_press) {
-      last_press = press_time;
-      if (press_time == 1) {bsp_led_set(init,0,0,0);}
-      else if (press_time == 2) {
-        bsp_led_set(normal,250,0,0);
-        uart_start("working normally\n");
-      }
-      else if (press_time == 3) {
-        bsp_led_set(error,250,0,0);
-        uart_start("working error\n");
-      }
-    }
-      uint32_t now = HAL_GetTick();
-      bsp_led_task(2000);
-      if (flag == 1) {
-        flag = 0;
-       //buzzer_start(1000,1000);
-      }
-     //buzzer_task();
+    // if (press_time != last_press) {
+    //   last_press = press_time;
+    //   if (press_time == 1) {bsp_led_set(init,0,0,0);}
+    //   else if (press_time == 2) {
+    //     bsp_led_set(normal,250,0,0);
+    //     uart_start("working normally\n");
+    //   }
+    //   else if (press_time == 3) {
+    //     bsp_led_set(error,250,0,0);
+    //     uart_start("working error\n");
+    //   }
+    // }
+    //   uint32_t now = HAL_GetTick();
+    //   bsp_led_task(2000);
+    //   if (flag == 1) {
+    //     flag = 0;
+    //    buzzer_start(1000,1000);
+    //   }
+    //  buzzer_task();
+    fdcanx_send_data(&hfdcan1,0x201,txcan_buf,sizeof(txcan_buf));
+
+
+
+
 
 
 
@@ -177,7 +187,7 @@ void SystemClock_Config(void)
 
   /** Configure the main internal regulator output voltage
   */
-  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE0);
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
   while(!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {}
 
@@ -190,12 +200,12 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.HSICalibrationValue = 64;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLM = 5;
-  RCC_OscInitStruct.PLL.PLLN = 96;
+  RCC_OscInitStruct.PLL.PLLM = 2;
+  RCC_OscInitStruct.PLL.PLLN = 16;
   RCC_OscInitStruct.PLL.PLLP = 1;
   RCC_OscInitStruct.PLL.PLLQ = 2;
   RCC_OscInitStruct.PLL.PLLR = 2;
-  RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_2;
+  RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_3;
   RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;
   RCC_OscInitStruct.PLL.PLLFRACN = 0;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
@@ -210,13 +220,13 @@ void SystemClock_Config(void)
                               |RCC_CLOCKTYPE_D3PCLK1|RCC_CLOCKTYPE_D1PCLK1;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.SYSCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB3CLKDivider = RCC_APB3_DIV2;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_APB1_DIV2;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_APB2_DIV2;
   RCC_ClkInitStruct.APB4CLKDivider = RCC_APB4_DIV2;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_3) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
   {
     Error_Handler();
   }
