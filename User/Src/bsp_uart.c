@@ -34,22 +34,37 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
 
 }
 void uart_start(const char*information, ...) {
+    int len;
+    va_list buf;
 
     if (busy == 1) {
         return;
     }
     busy = 1;
-    strncpy(tx_buf,information,sizeof(tx_buf)-1);
-    tx_buf[sizeof(tx_buf)-1] = '\0';
+    va_start(buf,information);
+    /* 注意：这里必须用 vsnprintf 的返回值作为发送长度，
+       不能用 strlen(information)，那是格式字符串本身（"%.2f,..."）的长度，
+       会把格式化后的数据截断！ */
+    len = vsnprintf(tx_buf,sizeof(tx_buf),information,buf);
+    va_end(buf);
 
-    HAL_UART_Transmit_DMA(&uart, (uint8_t *) tx_buf, strlen(information));
+    if (len <= 0) {
+        busy = 0;
+        return;
+    }
+    if (len >= (int)sizeof(tx_buf)) {
+        len = (int)sizeof(tx_buf) - 1;   /* 超长时按缓冲区实际内容发送 */
+    }
+    if (HAL_UART_Transmit_DMA(&uart, (uint8_t *) tx_buf, (uint16_t)len) != HAL_OK) {
+        busy = 0;                        /* 启动失败要放行，否则串口从此再也发不出数据 */
+    }
 }
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
     if (huart->Instance == UART) {
         busy = 0;//保证发完一包数据才能进行下一次发送，防止数据互踩
     }
 }
-void HAL_uART_ErrorCallback(UART_HandleTypeDef *huart) {
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
     if (huart->Instance == UART) {
         __HAL_UART_CLEAR_OREFLAG(huart);//清空ore
         HAL_UARTEx_ReceiveToIdle_DMA(huart,(uint8_t*)re_buf,sizeof(re_buf));//重新开始接收

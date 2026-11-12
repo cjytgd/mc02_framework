@@ -5,7 +5,7 @@
 #include"../../User/Inc/bsp_led.h"
 #include"../../User/Inc/bsp_ws2812.h"
 #include"math.h"
-#define flash_frg 500
+#define FLASH_FRG 500
 led_state mode = init;
 uint32_t time = 0;
 uint32_t now_time = 0;
@@ -40,7 +40,7 @@ void bsp_led_task(uint32_t duration){
             case error: {
                static uint32_t last_flash_time = 0;
                 static uint8_t flashing = 0;
-                if (HAL_GetTick() - last_flash_time > flash_frg) {
+                if (HAL_GetTick() - last_flash_time > FLASH_FRG) {
                     last_flash_time = HAL_GetTick();
                     flashing = !flashing;
                 }

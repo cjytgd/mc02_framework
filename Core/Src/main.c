@@ -33,6 +33,7 @@
 #include"../../User/Inc/bsp_led.h"
 #include"../../User/Inc/bsp_uart.h"
 #include"../../User/Inc/bsp_can.h"
+#include"../../User/Inc/bsp_imu.h"
 
 #include"stdio.h"
 /* USER CODE END Includes */
@@ -112,11 +113,17 @@ int main(void)
   MX_USART1_UART_Init();
   MX_UART7_Init();
   MX_FDCAN1_Init();
+  MX_SPI2_Init();
   /* USER CODE BEGIN 2 */
   buzzer_init();
   bsp_led_init();
-  uart_init(&huart7);
-  bsp_can_init();
+   uart_init(&huart7);
+   bsp_can_init();
+   IMU_Init();
+  /* 打印一次芯片 ID，确认 SPI 通路是否正常：正常应为 ACC=0x1E, GYRO=0x0F */
+  //uart_start("ACC ID: 0x%02X, GYRO ID: 0x%02X\r\n", IMU_ReadReg(1, 0x00), IMU_ReadReg(0, 0x00));
+
+
 
 
   /* USER CODE END 2 */
@@ -127,6 +134,7 @@ int main(void)
   //用按键模拟工作状态，按一下表示未工作，按两下表示正常，按三下表示遇到突发情况
   static uint8_t last_press = 10;
   uint8_t txcan_buf[8] = {1,2,3,4,5,6,7,8};
+  IMU_Data_t imu;
   while (1) {
     // if (press_time != last_press) {
     //   last_press = press_time;
@@ -141,27 +149,17 @@ int main(void)
     //   }
     // }
     //   uint32_t now = HAL_GetTick();
-    //   bsp_led_task(2000);
+     bsp_led_task(2000);
     //   if (flag == 1) {
     //     flag = 0;
-    //    buzzer_start(1000,1000);
+   // buzzer_start(1000,1000);
     //   }
-    //  buzzer_task();
-    fdcanx_send_data(&hfdcan1,0x201,txcan_buf,sizeof(txcan_buf));
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    //buzzer_task();
+    //fdcanx_send_data(&hfdcan1,0x201,txcan_buf,sizeof(txcan_buf));
+    IMU_GetData(&imu);
+    uart_start("%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%f\n",imu.accel_x,imu.accel_y,imu.accel_z,imu.gyro_x,
+    imu.gyro_y,imu.gyro_z,10.4);
+    HAL_Delay(10);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
