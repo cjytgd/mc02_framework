@@ -29,6 +29,9 @@
 #include"semphr.h"
 #include"../../User/Inc/bsp_uart.h"
 #include"stdio.h"
+#include"../../User/Inc/bsp_led.h"
+#include"../../User/Inc/bsp_buzzer.h"
+#include"../../User/Inc/bsp_imu.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -38,7 +41,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+extern volatile uint8_t flag;
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -71,6 +74,25 @@ const osThreadAttr_t myTask03_attributes = {
   .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
+/* Definitions for myTask04 */
+osThreadId_t myTask04Handle;
+const osThreadAttr_t myTask04_attributes = {
+  .name = "myTask04",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal3,
+};
+/* Definitions for myTask05 */
+osThreadId_t myTask05Handle;
+const osThreadAttr_t myTask05_attributes = {
+  .name = "myTask05",
+  .stack_size = 526 * 4,
+  .priority = (osPriority_t) osPriorityHigh,
+};
+/* Definitions for uartQueue */
+osMessageQueueId_t uartQueueHandle;
+const osMessageQueueAttr_t uartQueue_attributes = {
+  .name = "uartQueue"
+};
 /* Definitions for xUARTMutex */
 osMutexId_t xUARTMutexHandle;
 const osMutexAttr_t xUARTMutex_attributes = {
@@ -85,6 +107,8 @@ const osMutexAttr_t xUARTMutex_attributes = {
 void StartDefaultTask(void *argument);
 void UART1Task(void *argument);
 void UART2Task(void *argument);
+void LEDTask(void *argument);
+void BMI088(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -113,6 +137,10 @@ void MX_FREERTOS_Init(void) {
   /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
 
+  /* Create the queue(s) */
+  /* creation of uartQueue */
+  uartQueueHandle = osMessageQueueNew (16, sizeof(uint8_t), &uartQueue_attributes);
+
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
   /* USER CODE END RTOS_QUEUES */
@@ -126,6 +154,12 @@ void MX_FREERTOS_Init(void) {
 
   /* creation of myTask03 */
   myTask03Handle = osThreadNew(UART2Task, NULL, &myTask03_attributes);
+
+  /* creation of myTask04 */
+  myTask04Handle = osThreadNew(LEDTask, NULL, &myTask04_attributes);
+
+  /* creation of myTask05 */
+  myTask05Handle = osThreadNew(BMI088, NULL, &myTask05_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -168,7 +202,7 @@ void UART1Task(void *argument)
   /* Infinite loop */
   for(;;)
   {xSemaphoreTake(xUARTMutexHandle,portMAX_DELAY);
-    uart_start("1\r\n");
+    uart_start("task1\r\n");
     xSemaphoreGive(xUARTMutexHandle);
     osDelay(200);
   }
@@ -188,11 +222,77 @@ void UART2Task(void *argument)
   /* Infinite loop */
   for(;;)
   {xSemaphoreTake(xUARTMutexHandle, portMAX_DELAY);
-    uart_start("2\r\n");
+    uart_start("task2\r\n");
     xSemaphoreGive(xUARTMutexHandle);
-    osDelay(100);
+    osDelay(200);
   }
   /* USER CODE END UART2Task */
+}
+
+/* USER CODE BEGIN Header_LEDTask */
+/**
+* @brief Function implementing the myTask04 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_LEDTask */
+void LEDTask(void *argument)
+{
+  /* USER CODE BEGIN LEDTask */
+  /* Infinite loop */
+  uint8_t buf = 0;;
+  for(;;)
+  {xQueueReceive(uartQueueHandle,(uint8_t*)&buf,0);
+    // if (buf != buf ) {
+    //     buf = buf;
+         if (buf == 1) {bsp_led_set(init,0,0,0);}
+         else if (buf == 2) {
+           bsp_led_set(normal,250,0,0);
+           xSemaphoreTake(xUARTMutexHandle, portMAX_DELAY);
+           uart_start("working normally\n");
+           xSemaphoreGive(xUARTMutexHandle);
+         }
+         else if (buf == 3) {
+           bsp_led_set(error,250,0,0);
+           xSemaphoreTake(xUARTMutexHandle, portMAX_DELAY);
+           uart_start("working error\n");
+           xSemaphoreGive(xUARTMutexHandle);
+
+       }
+    if (flag == 1) {
+           flag = 0;
+       buzzer_start(1000,1000);
+         }
+         uint32_t now = HAL_GetTick();
+         bsp_led_task(2000);
+         buzzer_task();
+
+      //
+  }
+  /* USER CODE END LEDTask */
+}
+
+/* USER CODE BEGIN Header_BMI088 */
+/**
+* @brief Function implementing the myTask05 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_BMI088 */
+void BMI088(void *argument)
+{
+  /* USER CODE BEGIN BMI088 */
+  /* Infinite loop */
+  IMU_Data_t imu;
+  for(;;)
+  {IMU_GetData(&imu);
+    xSemaphoreTake(xUARTMutexHandle, portMAX_DELAY);
+    uart_start("%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%f\n",imu.accel_x,imu.accel_y,imu.accel_z,imu.gyro_x,
+    imu.gyro_y,imu.gyro_z,10.4);
+    xSemaphoreGive(xUARTMutexHandle);
+    osDelay(10);
+  }
+  /* USER CODE END BMI088 */
 }
 
 /* Private application code --------------------------------------------------*/
