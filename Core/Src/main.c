@@ -18,6 +18,8 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "FreeRTOS.h"
+#include "cmsis_os2.h"
 #include "dma.h"
 #include "fdcan.h"
 #include "spi.h"
@@ -66,6 +68,7 @@ extern char re_buf[128];
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MPU_Config(void);
+void MX_FREERTOS_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -128,6 +131,15 @@ int main(void)
 
   /* USER CODE END 2 */
 
+  /* Init scheduler */
+  osKernelInitialize();  /* Call init function for freertos objects (in cmsis_os2.c) */
+  MX_FREERTOS_Init();
+
+  /* Start scheduler */
+  osKernelStart();
+
+  /* We should never get here as control is now taken by the scheduler */
+
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
@@ -149,17 +161,17 @@ int main(void)
     //   }
     // }
     //   uint32_t now = HAL_GetTick();
-     bsp_led_task(2000);
+    ///bsp_led_task(2000);
     //   if (flag == 1) {
     //     flag = 0;
    // buzzer_start(1000,1000);
     //   }
     //buzzer_task();
     //fdcanx_send_data(&hfdcan1,0x201,txcan_buf,sizeof(txcan_buf));
-    IMU_GetData(&imu);
-    uart_start("%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%f\n",imu.accel_x,imu.accel_y,imu.accel_z,imu.gyro_x,
-    imu.gyro_y,imu.gyro_z,10.4);
-    HAL_Delay(10);
+    //IMU_GetData(&imu);
+    //uart_start("%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%f\n",imu.accel_x,imu.accel_y,imu.accel_z,imu.gyro_x,
+    //imu.gyro_y,imu.gyro_z,10.4);
+    //HAL_Delay(10);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -273,6 +285,28 @@ void MPU_Config(void)
   /* Enables the MPU */
   HAL_MPU_Enable(MPU_PRIVILEGED_DEFAULT);
 
+}
+
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM4 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM4)
+  {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
 }
 
 /**
