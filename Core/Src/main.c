@@ -29,7 +29,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "queue.h"
+//#include "queue.h"
 #include"string.h"
 #include"../../User/Inc/bsp_buzzer.h"
 #include"../../User/Inc/bsp_ws2812.h"
@@ -37,7 +37,8 @@
 #include"../../User/Inc/bsp_uart.h"
 #include"../../User/Inc/bsp_can.h"
 #include"../../User/Inc/bsp_imu.h"
-#include"FreeRTOSConfig.h"
+#include"../../User/Inc/bsp_motor.h"
+//#include"FreeRTOSConfig.h"
 #include"stdio.h"
 /* USER CODE END Includes */
 
@@ -62,7 +63,7 @@
 extern volatile uint8_t press_time = 0;
 volatile uint8_t last_press_time = 0;
  volatile uint8_t flag = 0;
-extern osMessageQueueId_t uartQueueHandle;
+//extern osMessageQueueId_t uartQueueHandle;
 char buf[128];
 extern char re_buf[128];
 /* USER CODE END PV */
@@ -174,6 +175,8 @@ int main(void)
     //uart_start("%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%f\n",imu.accel_x,imu.accel_y,imu.accel_z,imu.gyro_x,
     //imu.gyro_y,imu.gyro_z,10.4);
     //HAL_Delay(10);
+   // motor_set_I(10000);
+    //HAL_Delay(10);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -248,15 +251,15 @@ void SystemClock_Config(void)
   void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
     if (GPIO_Pin == GPIO_PIN_15) {
       static uint32_t time = 0;
-      BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+     // BaseType_t xHigherPriorityTaskWoken = pdFALSE;
       uint32_t current_time = HAL_GetTick();
       if (current_time - time > 50) {
         time = current_time;
         press_time++;
         flag =1;
         if (press_time >3){press_time = 1;}
-        xQueueSendFromISR(uartQueueHandle,&press_time,&xHigherPriorityTaskWoken);
-        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+       // xQueueSendFromISR(uartQueueHandle,&press_time,&xHigherPriorityTaskWoken);
+        //portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
       }
     }
   }
