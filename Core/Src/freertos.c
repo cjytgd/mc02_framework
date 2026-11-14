@@ -23,11 +23,12 @@
 #include "main.h"
 #include "FreeRTOS.h"
 #include "cmsis_os2.h"
-#include"../../User/Inc/bsp_motor.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include"../../User/Inc/bsp_motor.h"
+#include"../../User/Inc/bsp_uart.h"
+#include"../../User/Inc/bsp_led.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -37,7 +38,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+extern float duty;
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -63,6 +64,13 @@ const osThreadAttr_t myTask02_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityLow,
 };
+/* Definitions for myTask03 */
+osThreadId_t myTask03Handle;
+const osThreadAttr_t myTask03_attributes = {
+  .name = "myTask03",
+  .stack_size = 526 * 4,
+  .priority = (osPriority_t) osPriorityLow,
+};
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -71,6 +79,7 @@ const osThreadAttr_t myTask02_attributes = {
 
 void StartDefaultTask(void *argument);
 void motorTask(void *argument);
+void UartTask(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -106,6 +115,9 @@ void MX_FREERTOS_Init(void) {
 
   /* creation of myTask02 */
   myTask02Handle = osThreadNew(motorTask, NULL, &myTask02_attributes);
+
+  /* creation of myTask03 */
+  myTask03Handle = osThreadNew(UartTask, NULL, &myTask03_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -147,9 +159,36 @@ void motorTask(void *argument)
   /* USER CODE BEGIN motorTask */
   /* Infinite loop */
   for(;;)
-  {motor_set_I(10000);
+  {bsp_led_task(2000);
+    motor_set_I(id1,10000 * duty );
+
   }
   /* USER CODE END motorTask */
+}
+
+/* USER CODE BEGIN Header_UartTask */
+/**
+* @brief Function implementing the myTask03 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_UartTask */
+void UartTask(void *argument)
+{
+  /* USER CODE BEGIN UartTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    motor_send();
+    int16_t current_me_angle = rx_data.me_angle;
+    int16_t current_speed = rx_data.speed;
+    int16_t current_temperature = rx_data.temperature;
+    int16_t current_I = rx_data.current;
+    uart_start("me_angle:%d speed:%d current:%d temperature:%d\n", current_me_angle, current_speed,
+     current_I, current_temperature);
+    osDelay(10);
+  }
+  /* USER CODE END UartTask */
 }
 
 /* Private application code --------------------------------------------------*/

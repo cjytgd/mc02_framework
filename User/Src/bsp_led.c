@@ -12,6 +12,7 @@ uint32_t now_time = 0;
 uint8_t ba_r = 0;
 uint8_t ba_g = 0;
 uint8_t ba_b = 0;
+float duty = 0;
 void bsp_led_init() {
     WS2812_Ctrl(0,0,0);
 }
@@ -31,7 +32,7 @@ void bsp_led_task(uint32_t duration){
             break;
         case normal: {
             float recycle = (now %  duration) * ( 2 * 3.14f) / duration;
-            float duty =  (sin(recycle) + 1.0f) / 2.0f;
+             duty =  (sin(recycle) + 1.0f) / 2.0f;
             uint8_t red = ba_r * duty;
             uint8_t green = ba_g * duty;
             uint8_t blue = ba_b * duty;
