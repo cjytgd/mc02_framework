@@ -5,10 +5,16 @@
 #ifndef __BSP_FDCAN_H__
 #define __BSP_FDCAN_H__
 #include "main.h"
-#include "fdcan.h"
 
 #define hcan_t FDCAN_HandleTypeDef
-
+typedef struct {
+    uint16_t me_angle;
+    uint16_t speed;
+    uint16_t current;
+    uint16_t temperature;
+    uint32_t time;
+}RX_DAtA;
+extern RX_DAtA rx_data;
 void bsp_can_init(void);
 void can_filter_init(void);
 uint8_t fdcanx_send_data(hcan_t *hfdcan, uint16_t id, uint8_t *data, uint32_t len);

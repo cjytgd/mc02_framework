@@ -13,6 +13,7 @@
 #define UART UART7
 char re_buf[128];
 char tx_buf[128];
+uint8_t motor_set_uart = 1;
 static volatile uint8_t busy = 0;
 void uart_init(UART_HandleTypeDef * huart) {
     HAL_UARTEx_ReceiveToIdle_DMA(huart,(uint8_t*)re_buf,sizeof(re_buf));
@@ -25,8 +26,8 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
         }
         else{
             re_buf[Size] = '\0';//强赛一个结束符
-            if (re_buf[0] == '1'){ bsp_led_set(normal,250,0,0);};//发1表示 正常
-            if (re_buf[0] == '2'){ bsp_led_set(error,250,0,0);}//发2表示错误
+            if (re_buf[0] == '1'){ motor_set_uart = 1;};//发1表示GM6020的反馈标识符
+            if (re_buf[0] == '2'){ motor_set_uart = 2;}//发2表示M3050的反馈标识符
             if (re_buf[0] == '3'){ bsp_led_set(init,0,0,0);}//发3表示未工作
             HAL_UARTEx_ReceiveToIdle_DMA(huart,(uint8_t*)re_buf,sizeof(re_buf));
         }
@@ -71,4 +72,3 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
     }
 }
 
-    

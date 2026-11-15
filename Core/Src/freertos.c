@@ -29,6 +29,7 @@
 #include"../../User/Inc/bsp_motor.h"
 #include"../../User/Inc/bsp_uart.h"
 #include"../../User/Inc/bsp_led.h"
+#include"../../User/Inc/bsp_can.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -38,7 +39,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-extern float duty;
+extern uint16_t rec_id1;
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -71,6 +72,13 @@ const osThreadAttr_t myTask03_attributes = {
   .stack_size = 526 * 4,
   .priority = (osPriority_t) osPriorityLow,
 };
+/* Definitions for myTask04 */
+osThreadId_t myTask04Handle;
+const osThreadAttr_t myTask04_attributes = {
+  .name = "myTask04",
+  .stack_size = 512 * 4,
+  .priority = (osPriority_t) osPriorityLow,
+};
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -80,6 +88,7 @@ const osThreadAttr_t myTask03_attributes = {
 void StartDefaultTask(void *argument);
 void motorTask(void *argument);
 void UartTask(void *argument);
+void watchDog(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -118,6 +127,9 @@ void MX_FREERTOS_Init(void) {
 
   /* creation of myTask03 */
   myTask03Handle = osThreadNew(UartTask, NULL, &myTask03_attributes);
+
+  /* creation of myTask04 */
+  myTask04Handle = osThreadNew(watchDog, NULL, &myTask04_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -159,9 +171,11 @@ void motorTask(void *argument)
   /* USER CODE BEGIN motorTask */
   /* Infinite loop */
   for(;;)
-  {bsp_led_task(2000);
-    motor_set_I(id1,10000 * duty );
-
+   {//uint32_t now1 = xTaskGetTickCount();
+  //   float recycle = (now1 %  2000) * ( 2 * 3.14f) / 2000;
+  //   float duty =  (sin(recycle) + 1.0f) / 2.0f;
+    motor_set_I(GM6020,id1,10000 );
+    osDelay(1);
   }
   /* USER CODE END motorTask */
 }
@@ -179,16 +193,41 @@ void UartTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
-    motor_send();
     int16_t current_me_angle = rx_data.me_angle;
     int16_t current_speed = rx_data.speed;
     int16_t current_temperature = rx_data.temperature;
     int16_t current_I = rx_data.current;
-    uart_start("me_angle:%d speed:%d current:%d temperature:%d\n", current_me_angle, current_speed,
-     current_I, current_temperature);
-    osDelay(10);
+    uart_start("%d, %d, %d, %d\r\n", current_me_angle, current_speed, current_I, current_temperature);
+    osDelay(1);
   }
   /* USER CODE END UartTask */
+}
+
+/* USER CODE BEGIN Header_watchDog */
+/**
+* @brief Function implementing the myTask04 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_watchDog */
+void watchDog(void *argument)
+{
+  /* USER CODE BEGIN watchDog */
+  /* Infinite loop */
+  for(;;)
+  {uint32_t now = xTaskGetTickCount();
+    if (now - rx_data.time > pdMS_TO_TICKS(100)) {
+      bsp_led_task(2000);
+      bsp_led_set(error,250,0,0);
+    }
+    else {
+      bsp_led_task(2000);
+      bsp_led_set(normal,0,250,0);
+    }
+
+    osDelay(10);
+  }
+  /* USER CODE END watchDog */
 }
 
 /* Private application code --------------------------------------------------*/

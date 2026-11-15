@@ -12,14 +12,13 @@ typedef enum {
     id5,
     id6,
     id7,
+    id8,
 }ID_data;
-typedef struct {
-    float me_angle;
-    float speed;
-    float current;
-    float temperature;
-}RX_DAtA;
-extern RX_DAtA rx_data;
+typedef enum {
+    GM6020,
+    M3508,
+
+}MOTOR_TYPE;
 void motor_send(void);
-void motor_set_I(ID_data id,uint16_t I);
+void motor_set_I(MOTOR_TYPE motor,ID_data id,uint16_t I);
 #endif //MC02_1_BSP_MOTOR_H

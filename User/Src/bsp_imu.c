@@ -283,9 +283,9 @@ void IMU_Init(void) {
     gyro_err = imu_gyro_init();
 
     if ((acc_err == 0U) && (gyro_err == 0U)) {
-        bsp_led_set(normal, 250, 0, 0);
+       // bsp_led_set(normal, 250, 0, 0);
     } else {
-        bsp_led_set(error, 250, 0, 0);
+        //bsp_led_set(error, 250, 0, 0);
     }
 }
 

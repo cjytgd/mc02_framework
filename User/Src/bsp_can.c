@@ -4,7 +4,11 @@
 
 #include"fdcan.h"
 #include"../../User/Inc/bsp_can.h"
-#include"../../User/Inc/bsp_ws2812.h"
+#include "FreeRTOS.h"
+#include"task.h"
+// #include"FreeRTOSConfig.h"
+
+
 /**
 ************************************************************************
 * @brief:      	bsp_can_init(void)
@@ -13,8 +17,8 @@
 * @details:    	CAN 使能
 ************************************************************************
 **/
-
-
+RX_DAtA rx_data;
+extern uint8_t motor_set_uart;
 void bsp_can_init(void)
 {
 	can_filter_init();
@@ -94,7 +98,9 @@ uint8_t fdcanx_send_data(hcan_t *hfdcan, uint16_t id, uint8_t *data, uint32_t le
     pTxHeader.MessageMarker=0;
 
 	if(HAL_FDCAN_AddMessageToTxFifoQ(hfdcan, &pTxHeader, data)!=HAL_OK)
-		return 1;//发送
+		return 1;
+
+
 	return 0;
 }
 /**
@@ -140,39 +146,55 @@ uint8_t fdcanx_receive(hcan_t *hfdcan, uint16_t *rec_id, uint8_t *buf)
 
 uint8_t rx_data1[8] = {0};
 uint16_t rec_id1;
-void fdcan1_rx_callback(void)
-{
+void fdcan1_rx_callback(void) {
 	fdcanx_receive(&hfdcan1, &rec_id1, rx_data1);
-	if (rec_id1 == 0x201) {
-		WS2812_Ctrl(0,250,0);
+	if (motor_set_uart == 1) {
+		if (rec_id1 >= 0x205 && rec_id1 <= 0x20B) {
+			rx_data.me_angle =  rx_data1[0]<<8 | rx_data1[1]&0xFF;
+			rx_data.speed = rx_data1[2]<<8 | rx_data1[3]&0xFF;
+			rx_data.current = rx_data1[4]<<8 | rx_data1[5]&0xFF;
+			rx_data.temperature = rx_data1[6];
+			rx_data.time = xTaskGetTickCount();
+		}
 	}
-}
-uint8_t rx_data2[8] = {0};
-uint16_t rec_id2;
-// void fdcan2_rx_callback(void)
-// {
-// 	fdcanx_receive(&hfdcan2, &rec_id2, rx_data2);
-// }
-// uint8_t rx_data3[8] = {0};
-// uint16_t rec_id3;
-// void fdcan3_rx_callback(void)
-// {
-// 	fdcanx_receive(&hfdcan3, &rec_id3, rx_data3);
-// }
+	if (motor_set_uart == 2) {
+		if (rec_id1 >= 0x201 && rec_id1 <= 0x208) {
+			rx_data.me_angle =  rx_data1[0]<<8 | rx_data1[1]&0xFF;
+			rx_data.speed = rx_data1[2]<<8 | rx_data1[3]&0xFF;
+			rx_data.current = rx_data1[4]<<8 | rx_data1[5]&0xFF;
+			rx_data.temperature = rx_data1[6];
+		}
+	}
 
 
-void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
-{
-    if(hfdcan == &hfdcan1)
+
+	uint8_t rx_data2[8] = {0};
+	uint16_t rec_id2;
+	// void fdcan2_rx_callback(void)
+	// {
+	// 	fdcanx_receive(&hfdcan2, &rec_id2, rx_data2);
+	// }
+	// uint8_t rx_data3[8] = {0};
+	// uint16_t rec_id3;
+	// void fdcan3_rx_callback(void)
+	// {
+	// 	fdcanx_receive(&hfdcan3, &rec_id3, rx_data3);
+	 }
+
+
+	void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
 	{
-		fdcan1_rx_callback();
+		if(hfdcan == &hfdcan1)
+		{
+			fdcan1_rx_callback();
+		}
+		// if(hfdcan == &hfdcan2)
+		// {
+		// 	fdcan2_rx_callback();
+		// }
+		// if(hfdcan == &hfdcan3)
+		// {
+		// 	fdcan3_rx_callback();
+		// }
 	}
-	// if(hfdcan == &hfdcan2)
-	// {
-	// 	fdcan2_rx_callback();
-	// }
-	// if(hfdcan == &hfdcan3)
-	// {
-	// 	fdcan3_rx_callback();
-	// }
-}
+
