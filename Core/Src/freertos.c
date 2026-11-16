@@ -174,13 +174,13 @@ void motorTask(void *argument)
   /* USER CODE BEGIN motorTask */
   /* Infinite loop */
   TickType_t xLastWakeTime = xTaskGetTickCount();
-  pid_set(24.0f,10.5f,0.3f);
+  pid_set(28.5f,11.8f,0.28f);
   for(;;)
    {//uint32_t now1 = xTaskGetTickCount();
   //   float recycle = (now1 %  2000) * ( 2 * 3.14f) / 2000;
   //   float duty =  (sin(recycle) + 1.0f) / 2.0f;
     float speed = rx_data.speed;
-   uint16_t current = pid_math(250,speed ,0.002f);
+   uint16_t current = pid_math(280,speed ,0.002f,0.8f);
     motor_set_I(GM6020,id1,current);
     xTaskDelayUntil(&xLastWakeTime,pdMS_TO_TICKS(2));
 

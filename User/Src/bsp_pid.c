@@ -9,22 +9,25 @@ PID pid;
 int32_t ta_error = 0;
 static int16_t error = 0;
 static int16_t last_error = 0;
+float last_duty = 0;
 void pid_set( float kp, float ki, float kd) {
     pid.kp = kp;
     pid.ki = ki;
     pid.kd = kd;
 }
-float pid_math(float target,float current,float dt) {
+float pid_math(float target,float current,float dt,float pro ) {
     pid.target = target;
     pid.current = current;
     error = target-current;
     ta_error = ta_error + error * dt;
-    if(ta_error > 5000){ ta_error = 5000;}
-    if(ta_error < -5000){ ta_error = -5000;}
+    if(ta_error > 10000){ ta_error = 10000;}
+    if(ta_error < -10000){ ta_error = -10000;}
     pid.duty = pid.kp * error + pid.ki * ta_error + pid.kd * (error - last_error) / dt ;
+    pid.re_duty = pro * pid.duty + (1.0f - pro) * last_duty;
+    last_duty = pid.duty;
     if (pid.duty > 16000){ pid.duty = 16000; }
     if (pid.duty < -16000){ pid.duty = -16000; }
     last_error = error;
-    return (pid.duty);
+    return (pid.re_duty);
 }
 
