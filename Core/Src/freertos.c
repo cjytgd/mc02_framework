@@ -29,7 +29,9 @@
 #include"../../User/Inc/bsp_motor.h"
 #include"../../User/Inc/bsp_uart.h"
 #include"../../User/Inc/bsp_led.h"
+#include"../../User/Inc/bsp_pid.h"
 #include"../../User/Inc/bsp_can.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -40,6 +42,7 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 extern uint16_t rec_id1;
+uint16_t current = 0;
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -170,12 +173,17 @@ void motorTask(void *argument)
 {
   /* USER CODE BEGIN motorTask */
   /* Infinite loop */
+  TickType_t xLastWakeTime = xTaskGetTickCount();
+  pid_set(24.0f,10.5f,0.3f);
   for(;;)
    {//uint32_t now1 = xTaskGetTickCount();
   //   float recycle = (now1 %  2000) * ( 2 * 3.14f) / 2000;
   //   float duty =  (sin(recycle) + 1.0f) / 2.0f;
-    motor_set_I(GM6020,id1,10000 );
-    osDelay(1);
+    float speed = rx_data.speed;
+   uint16_t current = pid_math(250,speed ,0.002f);
+    motor_set_I(GM6020,id1,current);
+    xTaskDelayUntil(&xLastWakeTime,pdMS_TO_TICKS(2));
+
   }
   /* USER CODE END motorTask */
 }
@@ -197,7 +205,8 @@ void UartTask(void *argument)
     int16_t current_speed = rx_data.speed;
     int16_t current_temperature = rx_data.temperature;
     int16_t current_I = rx_data.current;
-    uart_start("%d, %d, %d, %d\r\n", current_me_angle, current_speed, current_I, current_temperature);
+    int16_t target = pid.target;
+    uart_start("%d, %d\r\n",current_speed,target);
     osDelay(1);
   }
   /* USER CODE END UartTask */

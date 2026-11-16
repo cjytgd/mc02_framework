@@ -47,6 +47,7 @@ add_executable(${CMAKE_PROJECT_NAME}
         User/Inc/bsp_motor.h
         User/Src/bsp_motor.c
         User/Src/bsp_pid.c
+        User/Inc/bsp_pid.h
 
 )
 
