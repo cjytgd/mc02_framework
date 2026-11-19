@@ -151,32 +151,7 @@ int main(void)
   uint8_t txcan_buf[8] = {1,2,3,4,5,6,7,8};
   IMU_Data_t imu;
   while (1) {
-    // if (press_time != last_press) {
-    //   last_press = press_time;
-    //   if (press_time == 1) {bsp_led_set(init,0,0,0);}
-    //   else if (press_time == 2) {
-    //     bsp_led_set(normal,250,0,0);
-    //     uart_start("working normally\n");
-    //   }
-    //   else if (press_time == 3) {
-    //     bsp_led_set(error,250,0,0);
-    //     uart_start("working error\n");
-    //   }
-    // }
-    //   uint32_t now = HAL_GetTick();
-    ///bsp_led_task(2000);
-    //   if (flag == 1) {
-    //     flag = 0;
-   // buzzer_start(1000,1000);
-    //   }
-    //buzzer_task();
-    //fdcanx_send_data(&hfdcan1,0x201,txcan_buf,sizeof(txcan_buf));
-    //IMU_GetData(&imu);
-    //uart_start("%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%f\n",imu.accel_x,imu.accel_y,imu.accel_z,imu.gyro_x,
-    //imu.gyro_y,imu.gyro_z,10.4);
-    //HAL_Delay(10);
-   // motor_set_I(10000);
-    //HAL_Delay(10);
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

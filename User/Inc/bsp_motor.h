@@ -20,5 +20,5 @@ typedef enum {
 
 }MOTOR_TYPE;
 void motor_send(void);
-void motor_set_I(MOTOR_TYPE motor,ID_data id,uint16_t I);
+void motor_set_I(MOTOR_TYPE motor,ID_data id,int16_t I);
 #endif //MC02_1_BSP_MOTOR_H

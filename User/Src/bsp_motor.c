@@ -9,7 +9,7 @@
 #define M35081_4 0x200
 #define M35085_8  0x1FF
 extern  float duty;
-void motor_set_I(MOTOR_TYPE type,ID_data id,uint16_t I) {
+void motor_set_I(MOTOR_TYPE type,ID_data id,int16_t I) {
     if (I > 16000){I = 16000;}
     if (I < -16000){I = -16000;}
     uint8_t tx_data_1[8] ={0};

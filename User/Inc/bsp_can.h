@@ -8,13 +8,14 @@
 
 #define hcan_t FDCAN_HandleTypeDef
 typedef struct {
-    uint16_t me_angle;
-    uint16_t speed;
-    uint16_t current;
-    uint16_t temperature;
-    uint32_t time;
+    int16_t me_angle;
+    int16_t speed;
+    int16_t current;
+    int16_t temperature;
+    int32_t time;
 }RX_DAtA;
 extern RX_DAtA rx_data;
+extern volatile float count;
 void bsp_can_init(void);
 void can_filter_init(void);
 uint8_t fdcanx_send_data(hcan_t *hfdcan, uint16_t id, uint8_t *data, uint32_t len);
