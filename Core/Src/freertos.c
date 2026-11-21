@@ -173,21 +173,22 @@ void motorTask(void *argument)
   /* USER CODE BEGIN motorTask */
   /* Infinite loop */
   TickType_t xLastWakeTime = xTaskGetTickCount();
-  pid_set_angle(0.0521f,0.001f,0.0f);
-  pid_set_speed(8.0f,0.01f,0.0f);
+  pid_set_angle(1.1f,0.00f,0.0f);
+  pid_set_speed(3.0f,0.5f,0.0f);
   for(;;)
    {//uint32_t now1 = xTaskGetTickCount();
   //   float recycle = (now1 %  2000) * ( 2 * 3.14f) / 2000;
   //   float duty =  (sin(recycle) + 1.0f) / 2.0f;
     float angle = rx_data.me_angle ;
-    float n_speed = rx_data.speed;
-   pid_speed.target_speed = pid_math_angle(5000.0f,angle ,0.1f,0.9f);
-    if (pid_speed.target_speed > 150.0f){pid_speed.target_speed = 150.0f;}
-    if (pid_speed.target_speed < -150.0f){pid_speed.target_speed = -150.0f;}
-    target_speed = pid_speed.target_speed;
-    float output = pid_math_speed( pid_speed.target_speed,n_speed ,0.1f,0.9f);
-    motor_set_I(GM6020,id1,(int16_t)output);
-    xTaskDelayUntil(&xLastWakeTime,pdMS_TO_TICKS(100));
+    float n_speed = rx_data.speed ;
+   pid_speed.target_speed = pid_math_angle(3000.0f,angle ,0.001f,0.9f);
+    if (pid_speed.target_speed > 500.0f){pid_speed.target_speed = 500.0f;}
+    if (pid_speed.target_speed < -500.0f){pid_speed.target_speed = -500.0f;}
+    target_speed =  pid_speed.target_speed;
+    float output = pid_math_speed( pid_speed.target_speed,n_speed ,0.001f,0.9f);
+    //motor_set_I(M3508,id2,300);
+    motor_set_I(M3508,id2, pid_speed.target_speed);
+    xTaskDelayUntil(&xLastWakeTime,pdMS_TO_TICKS(1));
   }
   /* USER CODE END motorTask */
 }
@@ -205,13 +206,13 @@ void UartTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
-    int16_t current_me_angle = rx_data.me_angle;
-    int16_t current_speed = rx_data.speed;
+    uint16_t current_me_angle = rx_data.me_angle;
+    int16_t current_speed = rx_data.speed ;
     int16_t current_temperature = rx_data.temperature;
     int16_t current_I = rx_data.current;
     int16_t target = pid_angle.target;
     int16_t error =pid_angle.error;
-    uart_start("%d,%d,%d,%d\r\n",target,current_me_angle,target_speed,current_speed);
+    uart_start("%d,%d,%d,%d\r\n",target,rx_data.me_angle,target_speed,current_speed);
     osDelay(1);
   }
   /* USER CODE END UartTask */
@@ -230,9 +231,9 @@ void watchDog(void *argument)
   /* Infinite loop */
   for(;;)
   {uint32_t now = xTaskGetTickCount();
-    if (now - rx_data.time > pdMS_TO_TICKS(100)) {
+    if (now - rx_data.time > pdMS_TO_TICKS(1000)) {
       bsp_led_task(2000);
-      bsp_led_set(error,250,0,0);
+      bsp_led_set(normal,250,0,0);
     }
     else {
       bsp_led_task(2000);

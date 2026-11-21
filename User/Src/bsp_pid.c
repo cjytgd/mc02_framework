@@ -22,9 +22,10 @@ float pid_math_speed(float target,float current,float dt,float pro ) {
     pid_speed.target = target;
     pid_speed.current = current;
     pid_speed.error = target-current;
+    if (pid_speed.error < 20.0f && pid_speed.error > -20.0f){ pid_speed.error = 0.0f; }
      pid_speed.ta_error = pid_speed.ta_error +  pid_speed.error * dt;
     if(pid_speed.ta_error < -500){ pid_speed.ta_error = -500;}
- if(pid_speed.ta_error > 500){ pid_speed.ta_error = 500;}
+ if(pid_speed.ta_error > 500){ pid_speed.ta_error =500;}
     pid_speed.duty =pid_speed.kp *  pid_speed.error +pid_speed.ki *  pid_speed.ta_error +pid_speed.kd * ( pid_speed.error -  pid_speed.last_error) ;
     pid_speed.last_error = pid_speed.error;
     pid_speed.re_duty = pro * pid_speed.duty + (1.0f - pro) *  pid_speed.last_duty;
@@ -40,15 +41,12 @@ float pid_math_angle(float target,float current,float dt,float pro ) {
     pid_angle.error = target-current;
     if (pid_angle.error > 4096.0f){ pid_angle.error -= 8192.0f; }
     if (pid_angle.error < -4096.0f){ pid_angle.error += 8192.0f; }
-    if (pid_angle.error > -5.0f && pid_angle.error < 5.0f){ motor_set_I(GM6020,id1,0);}
     pid_angle.ta_error =  pid_angle.ta_error + pid_angle.error * dt;
-    if( pid_angle.ta_error > 500){  pid_angle.ta_error = 500;}
-    if( pid_angle.ta_error < -500){  pid_angle.ta_error = -500;}
+    if( pid_angle.ta_error > 800){  pid_angle.ta_error = 800;}
+    if( pid_angle.ta_error < -800){  pid_angle.ta_error = -800;}
     pid_angle.duty = pid_angle.kp * pid_angle.error + pid_angle.ki * pid_angle.ta_error + pid_angle.kd * (pid_angle.error - pid_angle.last_error)  ;
     pid_angle.re_duty = pro * pid_angle.duty + (1.0f - pro) * pid_angle.last_duty;
     pid_angle.last_duty =pid_angle.duty;
-    if (pid_angle.re_duty > 350){ pid_angle.re_duty = 350; }
-    if (pid_angle.re_duty < -350){ pid_angle.re_duty = -350; }
     pid_angle.last_error = pid_angle. error;
     return (pid_angle.re_duty);
 
