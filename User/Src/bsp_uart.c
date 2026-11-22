@@ -10,8 +10,11 @@
 #include"../../User/Inc/bsp_buzzer.h"
 #include"../../User/Inc/bsp_led.h"
 #include"../../User/Inc/bsp_pid.h"
+#include"../../User/Inc/bsp_contrl.h"
 #define uart huart7
+#define UART1 huart5
 #define UART UART7
+#define U_CONTRL UART5
 char re_buf[128];
 char tx_buf[128];
 uint8_t motor_set_uart = 1;
@@ -20,8 +23,14 @@ uint8_t i = 1;
 uint16_t speed = 0;
 void uart_init(UART_HandleTypeDef * huart) {
     HAL_UARTEx_ReceiveToIdle_DMA(huart,(uint8_t*)re_buf,sizeof(re_buf));
+
 }
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
+    if(huart->Instance == U_CONTRL) {
+        contrl_math(buf,Size);
+        HAL_UARTEx_ReceiveToIdle_DMA(huart,(uint8_t*)buf,sizeof(buf));
+
+    }
     if(huart->Instance == UART) {
         //数据溢出进行闪烁红灯警报
         if (Size >= sizeof(re_buf)) {
@@ -103,9 +112,10 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
     }
 }
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
-    if (huart->Instance == UART) {
+    if (huart->Instance == U_CONTRL) {
         __HAL_UART_CLEAR_OREFLAG(huart);//清空ore
-        HAL_UARTEx_ReceiveToIdle_DMA(huart,(uint8_t*)re_buf,sizeof(re_buf));//重新开始接收
+        HAL_UARTEx_ReceiveToIdle_DMA(huart,(uint8_t*)buf,18);//重新开始接收
     }
 }
+
 

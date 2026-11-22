@@ -31,7 +31,7 @@
 #include"../../User/Inc/bsp_led.h"
 #include"../../User/Inc/bsp_pid.h"
 #include"../../User/Inc/bsp_can.h"
-
+#include"../../User/Inc/bsp_contrl.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -41,8 +41,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-extern uint16_t rec_id1;
-int16_t target_speed = 0;
+
+/* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
@@ -51,7 +51,8 @@ int16_t target_speed = 0;
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
-
+volatile float target_speed = 0.0f;
+volatile uint8_t offline = 0;
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
@@ -174,20 +175,23 @@ void motorTask(void *argument)
   /* Infinite loop */
   TickType_t xLastWakeTime = xTaskGetTickCount();
   pid_set_angle(1.1f,0.00f,0.0f);
-  pid_set_speed(3.0f,0.5f,0.0f);
+  pid_set_speed(3.0f,0.6f,0.0f);
   for(;;)
    {//uint32_t now1 = xTaskGetTickCount();
   //   float recycle = (now1 %  2000) * ( 2 * 3.14f) / 2000;
   //   float duty =  (sin(recycle) + 1.0f) / 2.0f;
-    float angle = rx_data.me_angle ;
+    //float angle = rx_data.me_angle ;
     float n_speed = rx_data.speed ;
-   pid_speed.target_speed = pid_math_angle(3000.0f,angle ,0.001f,0.9f);
-    if (pid_speed.target_speed > 500.0f){pid_speed.target_speed = 500.0f;}
-    if (pid_speed.target_speed < -500.0f){pid_speed.target_speed = -500.0f;}
-    target_speed =  pid_speed.target_speed;
-    float output = pid_math_speed( pid_speed.target_speed,n_speed ,0.001f,0.9f);
+   //pid_speed.target_speed = pid_math_angle(3000.0f,angle ,0.001f,0.9f);
+   // if (pid_speed.target_speed > 500.0f){pid_speed.target_speed = 500.0f;}
+    //if (pid_speed.target_speed < -500.0f){pid_speed.target_speed = -500.0f;}
+    int16_t ch = contrl_data.channel_0;
+
+      target_speed =  ch * 1.5f;
+
+    float output = pid_math_speed(target_speed,n_speed ,0.001f,0.9f);
     //motor_set_I(M3508,id2,300);
-    motor_set_I(M3508,id2, pid_speed.target_speed);
+    motor_set_I(M3508,id2, (int16_t)output);
     xTaskDelayUntil(&xLastWakeTime,pdMS_TO_TICKS(1));
   }
   /* USER CODE END motorTask */
@@ -207,12 +211,13 @@ void UartTask(void *argument)
   for(;;)
   {
     uint16_t current_me_angle = rx_data.me_angle;
-    int16_t current_speed = rx_data.speed ;
+    int16_t current_speed = rx_data.speed;
     int16_t current_temperature = rx_data.temperature;
     int16_t current_I = rx_data.current;
     int16_t target = pid_angle.target;
     int16_t error =pid_angle.error;
-    uart_start("%d,%d,%d,%d\r\n",target,rx_data.me_angle,target_speed,current_speed);
+    int16_t contrl_speed = contrl_data.channel_0*1.5f;
+    uart_start("%d,%d,%d,%d\r\n",current_me_angle,target,current_speed,contrl_speed);
     osDelay(1);
   }
   /* USER CODE END UartTask */
@@ -231,9 +236,19 @@ void watchDog(void *argument)
   /* Infinite loop */
   for(;;)
   {uint32_t now = xTaskGetTickCount();
-    if (now - rx_data.time > pdMS_TO_TICKS(1000)) {
+    // if (now - rx_data.time > pdMS_TO_TICKS(1000)) {
+    //   bsp_led_task(2000);
+    //   bsp_led_set(normal,250,0,0);
+    // }
+    // else {
+    //   bsp_led_task(2000);
+    //   bsp_led_set(normal,0,250,0);
+    // }
+    if (now - contrl_data.time > pdMS_TO_TICKS(1000)) {
       bsp_led_task(2000);
-      bsp_led_set(normal,250,0,0);
+      bsp_led_set(error,250,0,0);
+      //offline = 1;
+
     }
     else {
       bsp_led_task(2000);

@@ -37,7 +37,7 @@
 #include"../../User/Inc/bsp_uart.h"
 #include"../../User/Inc/bsp_can.h"
 #include"../../User/Inc/bsp_imu.h"
-#include"../../User/Inc/bsp_motor.h"
+#include"../../User/Inc/bsp_contrl.h"
 //#include"FreeRTOSConfig.h"
 #include"stdio.h"
 /* USER CODE END Includes */
@@ -64,7 +64,7 @@ extern volatile uint8_t press_time = 0;
 volatile uint8_t last_press_time = 0;
  volatile uint8_t flag = 0;
 //extern osMessageQueueId_t uartQueueHandle;
-char buf[128];
+//char buf[128];
 extern char re_buf[128];
 /* USER CODE END PV */
 
@@ -120,12 +120,14 @@ int main(void)
   MX_UART7_Init();
   MX_FDCAN1_Init();
   MX_SPI2_Init();
+  MX_UART5_Init();
   /* USER CODE BEGIN 2 */
   buzzer_init();
   bsp_led_init();
    uart_init(&huart7);
    bsp_can_init();
    IMU_Init();
+  contrl_init();
   /* 打印一次芯片 ID，确认 SPI 通路是否正常：正常应为 ACC=0x1E, GYRO=0x0F */
   //uart_start("ACC ID: 0x%02X, GYRO ID: 0x%02X\r\n", IMU_ReadReg(1, 0x00), IMU_ReadReg(0, 0x00));
 
