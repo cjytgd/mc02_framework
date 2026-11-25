@@ -38,6 +38,8 @@
 #include"../../User/Inc/bsp_can.h"
 #include"../../User/Inc/bsp_imu.h"
 #include"../../User/Inc/bsp_contrl.h"
+
+#include"../../User/Inc/bsp_attitude.h"
 //#include"FreeRTOSConfig.h"
 #include"stdio.h"
 /* USER CODE END Includes */
@@ -128,6 +130,7 @@ int main(void)
    bsp_can_init();
    IMU_Init();
   contrl_init();
+  Attitude_Init();
   /* 打印一次芯片 ID，确认 SPI 通路是否正常：正常应为 ACC=0x1E, GYRO=0x0F */
   //uart_start("ACC ID: 0x%02X, GYRO ID: 0x%02X\r\n", IMU_ReadReg(1, 0x00), IMU_ReadReg(0, 0x00));
 

@@ -32,6 +32,8 @@
 #include"../../User/Inc/bsp_pid.h"
 #include"../../User/Inc/bsp_can.h"
 #include"../../User/Inc/bsp_contrl.h"
+#include"../../User/Inc/bsp_imu.h"
+#include"../../User/Inc/bsp_attitude.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -82,6 +84,13 @@ const osThreadAttr_t myTask04_attributes = {
   .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityLow,
 };
+/* Definitions for myTask05 */
+osThreadId_t myTask05Handle;
+const osThreadAttr_t myTask05_attributes = {
+  .name = "myTask05",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityLow,
+};
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -92,6 +101,7 @@ void StartDefaultTask(void *argument);
 void motorTask(void *argument);
 void UartTask(void *argument);
 void watchDog(void *argument);
+void attitideTask(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -134,6 +144,9 @@ void MX_FREERTOS_Init(void) {
   /* creation of myTask04 */
   myTask04Handle = osThreadNew(watchDog, NULL, &myTask04_attributes);
 
+  /* creation of myTask05 */
+  myTask05Handle = osThreadNew(attitideTask, NULL, &myTask05_attributes);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -169,7 +182,8 @@ void StartDefaultTask(void *argument)
 * @retval None
 */
 /* USER CODE END Header_motorTask */
-void motorTask(void *argument) {
+void motorTask(void *argument)
+{
   /* USER CODE BEGIN motorTask */
   /* Infinite loop */
   TickType_t xLastWakeTime = xTaskGetTickCount();
@@ -207,19 +221,19 @@ void motorTask(void *argument) {
       }
     }
   }
-    /* USER CODE END motorTask */
-  }
+  /* USER CODE END motorTask */
+}
 
-  /* USER CODE BEGIN Header_UartTask */
+/* USER CODE BEGIN Header_UartTask */
   /**
   * @brief Function implementing the myTask03 thread.
   * @param argument: Not used
   * @retval None
   */
-  /* USER CODE END Header_UartTask */
-  void UartTask(void *argument)
-  {
-    /* USER CODE BEGIN UartTask */
+/* USER CODE END Header_UartTask */
+void UartTask(void *argument)
+{
+  /* USER CODE BEGIN UartTask */
     /* Infinite loop */
     for(;;)
     {
@@ -231,22 +245,22 @@ void motorTask(void *argument) {
       int16_t error =pid_angle.error;
       int8_t d = contrl_data.s2;
       int16_t contrl_speed = contrl_data.channel_0*1.5f;
-      uart_start("%d,%d,%d,%d\r\n",current_me_angle,target,current_speed,contrl_speed);
+      uart_start("%d,%d,%d\r\n",(int16_t)attitude_data.roll,(int16_t)attitude_data.pitch,(int16_t)attitude_data.yaw);
       osDelay(1);
     }
-    /* USER CODE END UartTask */
-  }
+  /* USER CODE END UartTask */
+}
 
-  /* USER CODE BEGIN Header_watchDog */
+/* USER CODE BEGIN Header_watchDog */
   /**
   * @brief Function implementing the myTask04 thread.
   * @param argument: Not used
   * @retval None
   */
-  /* USER CODE END Header_watchDog */
-  void watchDog(void *argument)
-  {
-    /* USER CODE BEGIN watchDog */
+/* USER CODE END Header_watchDog */
+void watchDog(void *argument)
+{
+  /* USER CODE BEGIN watchDog */
     /* Infinite loop */
 
     for(;;)
@@ -262,20 +276,42 @@ void motorTask(void *argument) {
 
       if (now - contrl_data.time > pdMS_TO_TICKS(1000)) {
         bsp_led_task(2000);
-        bsp_led_set(error,250,0,0);
+        //bsp_led_set(error,250,0,0);
         offline = 1;
 
       }
       else {
         bsp_led_task(2000);
-        bsp_led_set(normal,0,250,0);
+        //bsp_led_set(normal,0,250,0);
         offline = 0;
       }
 
       osDelay(10);
     }
-    /* USER CODE END watchDog */
+  /* USER CODE END watchDog */
+}
+
+/* USER CODE BEGIN Header_attitideTask */
+/**
+* @brief Function implementing the myTask05 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_attitideTask */
+void attitideTask(void *argument)
+{
+  /* USER CODE BEGIN attitideTask */
+  /* Infinite loop */
+  IMU_Data_t imu;
+  TickType_t xLastWakeTime = xTaskGetTickCount();
+  for(;;)
+  { IMU_GetData(&imu);
+    Attitude_Update(&imu);
+    xTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
+
   }
+  /* USER CODE END attitideTask */
+}
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */

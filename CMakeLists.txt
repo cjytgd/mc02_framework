@@ -50,6 +50,7 @@ add_executable(${CMAKE_PROJECT_NAME}
         User/Inc/bsp_pid.h
         User/Inc/bsp_contrl.h
         User/Src/bsp_contrl.c
+        User/Src/bsp_attitude.c
 
 )
 
