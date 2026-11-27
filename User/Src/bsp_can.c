@@ -4,6 +4,7 @@
 
 #include"fdcan.h"
 #include"../../User/Inc/bsp_can.h"
+#include"../../User/Inc/bsp_motor.h"
 #include "FreeRTOS.h"
 #include"task.h"
 // #include"FreeRTOSConfig.h"
@@ -17,7 +18,7 @@
 * @details:    	CAN 使能
 ************************************************************************
 **/
-RX_DAtA rx_data;
+
 extern uint8_t motor_set_uart;
 volatile float count = 0.0f;
 void bsp_can_init(void)
@@ -150,13 +151,7 @@ uint16_t rec_id1;
 void fdcan1_rx_callback(void) {
 	fdcanx_receive(&hfdcan1, &rec_id1, rx_data1);
 
-	if (rec_id1 >= 0x201 && rec_id1 <= 0x208) {
-		rx_data.me_angle =  (int16_t)(rx_data1[0]<<8 | rx_data1[1]);
-		// if (rx_data.me_angle > 8000){count++;}
-		rx_data.speed = rx_data1[2]<<8 | rx_data1[3]&0xFF;
-		rx_data.current = rx_data1[4]<<8 | rx_data1[5]&0xFF;
-		rx_data.temperature = rx_data1[6];
-		rx_data.time = xTaskGetTickCount();
+	motor_prase_can(rec_id1,rx_data1);
 	}
 
 
@@ -174,7 +169,7 @@ void fdcan1_rx_callback(void) {
 	// void fdcan3_rx_callback(void)
 	// {
 	// 	fdcanx_receive(&hfdcan3, &rec_id3, rx_data3);
-	 }
+
 
 
 	void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)

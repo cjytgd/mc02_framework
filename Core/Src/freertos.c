@@ -189,51 +189,41 @@ void motorTask(void *argument)
   TickType_t xLastWakeTime = xTaskGetTickCount();
   pid_set_angle(1.1f,0.00f,0.0f);
   pid_set_speed(3.0f,0.6f,0.0f);
-  //s1为2不使能；s1为3使能
-  //s2为1进行电机速度PID调控，s2为3进行小陀螺模式
-  for(;;) {
-    //uint32_t now1 = xTaskGetTickCount();
-    //   float recycle = (now1 %  2000) * ( 2 * 3.14f) / 2000;
-    //   float duty =  (sin(recycle) + 1.0f) / 2.0f;
-    //float angle = rx_data.me_angle ;
-     if (contrl_data.s1 == 2) {
-       contrl_data.channel_0 = 0;
-     }
-     else if (contrl_data.s1 == 3) {
-       if (contrl_data.s2 == 3) {
-         //进行小陀螺
-       }
-      else if (contrl_data.s2 ==1) {
-        float n_speed = rx_data.speed ;
+  for(;;)
+  {
+    contrl_update();
+    switch (contrl_state)
+    {
+    case Error:
+      motor_set_current(M3508,2,0);
 
-        //pid_speed.target_speed = pid_math_angle(3000.0f,angle ,0.001f,0.9f);
-        // if (pid_speed.target_speed > 500.0f){pid_speed.target_speed = 500.0f;}
-        //if (pid_speed.target_speed < -500.0f){pid_speed.target_speed = -500.0f;}
-        int16_t ch = contrl_data.channel_0;
-        if (offline == 1) {
-          ch  = 0;
-        }
-        target_speed =  ch * 1.5f;
-        float output = pid_math_speed(target_speed,n_speed ,0.001f,0.9f);
-        //motor_set_I(M3508,id2,300);
-        motor_set_I(M3508,id2, (int16_t)output);
-        xTaskDelayUntil(&xLastWakeTime,pdMS_TO_TICKS(1));
-      }
+      break;
+    case Normal:
+      int16_t ch = contrl_data.channel_0;
+      target_speed =  ch * 1.5f;
+      float n_speed = rx_data.speed ;
+      float output = pid_math_speed(target_speed,n_speed ,0.001f,0.9f);
+      motor_set_current(M3508,2,output);
+      break;
+
     }
+    motor_send_current();
   }
-  /* USER CODE END motorTask */
+  xTaskDelayUntil(&xLastWakeTime,pdMS_TO_TICKS(1));
+    /* USER CODE END motorTask */
+
 }
 
-/* USER CODE BEGIN Header_UartTask */
+  /* USER CODE BEGIN Header_UartTask */
   /**
   * @brief Function implementing the myTask03 thread.
   * @param argument: Not used
   * @retval None
   */
-/* USER CODE END Header_UartTask */
-void UartTask(void *argument)
-{
-  /* USER CODE BEGIN UartTask */
+  /* USER CODE END Header_UartTask */
+  void UartTask(void *argument)
+  {
+    /* USER CODE BEGIN UartTask */
     /* Infinite loop */
     for(;;)
     {
@@ -248,19 +238,19 @@ void UartTask(void *argument)
       uart_start("%d,%d,%d\r\n",(int16_t)attitude_data.roll,(int16_t)attitude_data.pitch,(int16_t)attitude_data.yaw);
       osDelay(1);
     }
-  /* USER CODE END UartTask */
-}
+    /* USER CODE END UartTask */
+  }
 
-/* USER CODE BEGIN Header_watchDog */
+  /* USER CODE BEGIN Header_watchDog */
   /**
   * @brief Function implementing the myTask04 thread.
   * @param argument: Not used
   * @retval None
   */
-/* USER CODE END Header_watchDog */
-void watchDog(void *argument)
-{
-  /* USER CODE BEGIN watchDog */
+  /* USER CODE END Header_watchDog */
+  void watchDog(void *argument)
+  {
+    /* USER CODE BEGIN watchDog */
     /* Infinite loop */
 
     for(;;)
@@ -276,45 +266,45 @@ void watchDog(void *argument)
 
       if (now - contrl_data.time > pdMS_TO_TICKS(1000)) {
         bsp_led_task(2000);
-        //bsp_led_set(error,250,0,0);
+        bsp_led_set(error,250,0,0);
         offline = 1;
 
       }
       else {
         bsp_led_task(2000);
-        //bsp_led_set(normal,0,250,0);
+        bsp_led_set(normal,0,250,0);
         offline = 0;
       }
 
       osDelay(10);
     }
-  /* USER CODE END watchDog */
-}
-
-/* USER CODE BEGIN Header_attitideTask */
-/**
-* @brief Function implementing the myTask05 thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_attitideTask */
-void attitideTask(void *argument)
-{
-  /* USER CODE BEGIN attitideTask */
-  /* Infinite loop */
-  IMU_Data_t imu;
-  TickType_t xLastWakeTime = xTaskGetTickCount();
-  for(;;)
-  { IMU_GetData(&imu);
-    Attitude_Update(&imu);
-    xTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
-
+    /* USER CODE END watchDog */
   }
-  /* USER CODE END attitideTask */
-}
 
-/* Private application code --------------------------------------------------*/
-/* USER CODE BEGIN Application */
+  /* USER CODE BEGIN Header_attitideTask */
+  /**
+  * @brief Function implementing the myTask05 thread.
+  * @param argument: Not used
+  * @retval None
+  */
+  /* USER CODE END Header_attitideTask */
+  void attitideTask(void *argument)
+  {
+    /* USER CODE BEGIN attitideTask */
+    /* Infinite loop */
+    IMU_Data_t imu;
+    TickType_t xLastWakeTime = xTaskGetTickCount();
+    for(;;)
+    { IMU_GetData(&imu);
+      Attitude_Update(&imu);
+      xTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1));
 
-/* USER CODE END Application */
+    }
+    /* USER CODE END attitideTask */
+  }
 
+
+  /* Private application code --------------------------------------------------*/
+  /* USER CODE BEGIN Application */
+
+  /* USER CODE END Application */

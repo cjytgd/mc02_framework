@@ -11,7 +11,7 @@ uint8_t buf[18] = {0};
 uint8_t mem_buf[18] = {0};
 uint16_t sum = 0;
 CONTRL_DATA contrl_data;
-
+CONTROLL_STATE  contrl_state = Error ;
 void contrl_init(void) {
     HAL_UARTEx_ReceiveToIdle_DMA(&huart5,(uint8_t*)buf,18);
 }
@@ -24,4 +24,28 @@ void contrl_math(uint8_t* buf,uint16_t size) {
         contrl_data.s2 = (buf[5]>>4)&0x0003;
         contrl_data.time = xTaskGetTickCount();
     }
+void contrl_update(void)
+{
+    switch(contrl_data.s1)
+    {
+    case 3:
+        if (contrl_data.s2 == 3)
+        {//进行pid计算
+            contrl_state = Normal;
+        }
+        else  if (contrl_data.s2 == 2)
+        {//进行小陀螺模式
+            contrl_state = spin;
+        }
+        else if (contrl_data.s2 == 1)
+        {//进行自瞄
+            contrl_state = Auto;
+        }
+        break;
+    case 1:
+    case 2:
+        contrl_state = Error;
+        break;;
+    }
+}
 

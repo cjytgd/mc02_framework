@@ -4,21 +4,24 @@
 
 #ifndef MC02_1_BSP_MOTOR_H
 #define MC02_1_BSP_MOTOR_H
-typedef enum {
-    id1,
-    id2,
-    id3,
-    id4,
-    id5,
-    id6,
-    id7,
-    id8,
-}ID_data;
-typedef enum {
+typedef enum
+{
     GM6020,
     M3508,
+    M2006,
+    DM_J4310,
+}Type;
+typedef struct
+{
+    int16_t me_angle;
+    int16_t speed;
+    int16_t current;
+    int16_t temperature;
+    int32_t time;
+}RX_DATA;
+extern RX_DATA rx_data;
 
-}MOTOR_TYPE;
-void motor_send(void);
-void motor_set_I(MOTOR_TYPE motor,ID_data id,int16_t I);
+void motor_set_current(Type type,uint8_t id ,float current);
+void motor_send_current();
+void motor_prase_can(uint32_t rec_id,uint8_t*rx_data);
 #endif //MC02_1_BSP_MOTOR_H
