@@ -190,22 +190,24 @@ void motorTask(void *argument)
   pid_set_angle(1.1f,0.00f,0.0f);
   pid_set_speed(3.0f,0.6f,0.0f);
   for(;;)
-  {
+  { contrl_check();
     contrl_update();
     switch (contrl_state)
     {
+    case Offline:
+      bsp_led_task(2000);
+      bsp_led_set(error,250,0,0);
+      break;
     case Error:
       motor_set_current(M3508,2,0);
-
       break;
     case Normal:
-      int16_t ch = contrl_data.channel_0;
+      int16_t ch = contrl_getch(0);
       target_speed =  ch * 1.5f;
       float n_speed = rx_data.speed ;
       float output = pid_math_speed(target_speed,n_speed ,0.001f,0.9f);
       motor_set_current(M3508,2,output);
       break;
-
     }
     motor_send_current();
   }
@@ -234,7 +236,7 @@ void motorTask(void *argument)
       int16_t target = pid_angle.target;
       int16_t error =pid_angle.error;
       int8_t d = contrl_data.s2;
-      int16_t contrl_speed = contrl_data.channel_0*1.5f;
+      int16_t contrl_speed = 1.5f;
       uart_start("%d,%d,%d\r\n",(int16_t)attitude_data.roll,(int16_t)attitude_data.pitch,(int16_t)attitude_data.yaw);
       osDelay(1);
     }
@@ -255,26 +257,26 @@ void motorTask(void *argument)
 
     for(;;)
     {uint32_t now = xTaskGetTickCount();
-      // if (now - rx_data.time > pdMS_TO_TICKS(1000)) {
-      //   bsp_led_task(2000);
-      //   bsp_led_set(normal,250,0,0);
-      // }
-      // else {
-      //   bsp_led_task(2000);
-      //   bsp_led_set(normal,0,250,0);
-      // }
-
-      if (now - contrl_data.time > pdMS_TO_TICKS(1000)) {
+      if (now - rx_data.time > pdMS_TO_TICKS(1000)) {
         bsp_led_task(2000);
-        bsp_led_set(error,250,0,0);
-        offline = 1;
-
+        bsp_led_set(normal,0,250,0);
       }
       else {
         bsp_led_task(2000);
         bsp_led_set(normal,0,250,0);
-        offline = 0;
       }
+
+      // if (now - contrl_data.time > pdMS_TO_TICKS(1000)) {
+      //   bsp_led_task(2000);
+      //   bsp_led_set(error,250,0,0);
+      //   offline = 1;
+      //
+      // }
+      // else {
+      //   bsp_led_task(2000);
+      //   bsp_led_set(normal,0,250,0);
+      //   offline = 0;
+      // }
 
       osDelay(10);
     }
